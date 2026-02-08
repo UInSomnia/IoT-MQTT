@@ -1,5 +1,7 @@
 #include "topic.h"
 
+#include <stdexcept>
+
 namespace InSomnia
 {
 
@@ -9,11 +11,28 @@ namespace InSomnia
         this->is_subscribe = false;
     }
     
-    Topic::Topic(const std::string &path, const int QOS)
+    Topic::Topic(
+        const std::string &path,
+        const int QOS,
+        const std::function<void(const std::string &)>
+            callback_set_value_to_ui)
     {
         this->path = path;
         this->QOS = QOS;
         this->is_subscribe = false;
+        this->callback_set_value_to_ui = callback_set_value_to_ui;
+    }
+    
+    void Topic::call_callback_set_value_to_ui(
+        const std::string &message)
+    {
+        if (!(this->callback_set_value_to_ui))
+        {
+            throw std::runtime_error(
+                "Callback_set_value_to_ui is null pointer");
+        }
+        
+        this->callback_set_value_to_ui(message);
     }
     
     void Topic::set_is_subscribe(

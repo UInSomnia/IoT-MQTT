@@ -35,6 +35,11 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     
+private slots:
+    void on_btn_connect_topics_clicked();
+    
+    void on_btn_connect_broker_clicked();
+    
 private:
     Ui::MainWindow *ui;
     
@@ -42,30 +47,21 @@ private:
     std::string tag;
     std::string server_uri;
     std::string client_id;
-
-    // Векторы топиков
-    // std::vector<InSomnia::Topic> input_topics;
-    // std::vector<mqtt::topic_ptr> topics;
     
     MQTTAsync client;
     
+    MQTTAsync_connectOptions conn_opts;
+    
     InSomnia::MQTT_Callback_Context callback_context;
     
-    // MQTTAsync_connectOptions conn_opts;
     
-    // MQTT клиент - объявлен последним, поэтому уничтожается первым
-    // std::unique_ptr<mqtt::async_client> mqtt_client;
-    // mqtt::async_client_ptr mqtt_client;
+    void slot_set_temp_inside(const std::string &message);
     
-    // std::unique_ptr<mqtt::async_client, MqttClientDeleter> mqtt_client;
-    // std::vector<std::pair<std::string, uint8_t>> input_topics;
-    // std::vector<std::unique_ptr<mqtt::topic>> topics;
+    void slot_set_temp_outside(const std::string &message);
     
-    // std::string tag;
-    // std::string server_uri;
-    // std::string client_id;
+    void slot_set_time(const std::string &message);
     
-    // Ui::MainWindow *ui;
+    void slot_set_current_lesson(const std::string &message);
 };
 
 #endif // MAINWINDOW_H

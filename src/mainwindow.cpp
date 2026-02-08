@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QTime>
+#include <QMessageBox>
+
 #include <iostream>
 #include <format>
 
@@ -18,10 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
     
     std::vector<InSomnia::Topic> input_topics =
     {
-        { std::format("ntiurfu/{}/temp/inside",    this->tag), 1 },
-        { std::format("ntiurfu/{}/temp/outside",   this->tag), 1 },
-        { std::format("ntiurfu/{}/time",           this->tag), 1 },
-        { std::format("ntiurfu/{}/current_lesson", this->tag), 1 }
+        { std::format("ntiurfu/{}/temp/inside",    this->tag), 1, [this](const std::string &message){ this->slot_set_temp_inside(message); } },
+        { std::format("ntiurfu/{}/temp/outside",   this->tag), 1, [this](const std::string &message){ this->slot_set_temp_outside(message); } },
+        { std::format("ntiurfu/{}/time",           this->tag), 1, [this](const std::string &message){ this->slot_set_time(message); } },
+        { std::format("ntiurfu/{}/current_lesson", this->tag), 1, [this](const std::string &message){ this->slot_set_current_lesson(message); } }
     };
     
     int rc = -1;
@@ -40,9 +43,42 @@ MainWindow::MainWindow(QWidget *parent)
             "Error create clinet");
     }
     
+    // Наполняем callback_context
     this->callback_context.client = this->client;
     this->callback_context.connected = false;
     this->callback_context.topics = std::move(input_topics);
+    this->callback_context.callback_text_browser =
+    [this](const std::string text) -> void
+    {
+        const QString qtext = QString::fromStdString(text);
+        this->ui->text_browser->append(qtext);
+    };
+    
+    this->callback_context.callback_message_topic =
+    [this](const std::string topic, const std::string message) -> void
+    {
+        // std::cout << "Test !\n";
+        // std::cout.flush();
+        
+        InSomnia::Topic *selected_topic = nullptr;
+        
+        for (InSomnia::Topic &t :
+            this->callback_context.topics)
+        {
+            const std::string &current_path = t.get_path();
+            if (topic == current_path)
+            {
+                selected_topic = &t;
+            }
+        }
+        
+        if (selected_topic == nullptr)
+        {
+            throw std::runtime_error("Selected_topic is null pointer");
+        }
+        
+        selected_topic->call_callback_set_value_to_ui(message);
+    };
     
     // Установка callback-функций
     rc = MQTTAsync_setCallbacks(
@@ -59,29 +95,13 @@ MainWindow::MainWindow(QWidget *parent)
     }
     
     // Настройка параметров подключения
-    MQTTAsync_connectOptions conn_opts =
+    this->conn_opts =
         MQTTAsync_connectOptions_initializer;
-    conn_opts.keepAliveInterval = 20;
-    conn_opts.cleansession = 1;
-    conn_opts.onSuccess = InSomnia::on_connect;
-    conn_opts.onFailure = InSomnia::on_connect_failure;
-    conn_opts.context = &(this->callback_context);
-    
-    // Асинхронное подключение к брокеру
-    std::cout << std::format(
-        "Connecting to the broker {}...\n",
-        this->server_uri);
-    std::cout.flush();
-    
-    rc = MQTTAsync_connect(this->client, &conn_opts);
-    
-    if (rc != MQTTASYNC_SUCCESS)
-    {
-        throw std::runtime_error(std::format(
-            "Connection initialization error: {}", rc));
-        
-        MQTTAsync_destroy(&(this->client));
-    }
+    this->conn_opts.keepAliveInterval = 20;
+    this->conn_opts.cleansession = 1;
+    this->conn_opts.onSuccess = InSomnia::on_connect;
+    this->conn_opts.onFailure = InSomnia::on_connect_failure;
+    this->conn_opts.context = &(this->callback_context);
     
 }
 
@@ -122,4 +142,122 @@ MainWindow::~MainWindow()
     }
     
     delete ui;
+}
+
+void MainWindow::on_btn_connect_topics_clicked()
+{
+    // std::vector<InSomnia::Topic> input_topics =
+    // {
+    //     { std::format("ntiurfu/{}/temp/inside",    this->tag), 1 },
+    //     { std::format("ntiurfu/{}/temp/outside",   this->tag), 1 },
+    //     { std::format("ntiurfu/{}/time",           this->tag), 1 },
+    //     { std::format("ntiurfu/{}/current_lesson", this->tag), 1 }
+    // };
+    
+    if (this->callback_context.connected)
+    {
+        InSomnia::pack_subscribe(
+            this->client,
+            this->callback_context);
+    }
+    else
+    {
+        this->ui->text_browser->append(
+            "Прежде чем подписываться на топики, "
+            "необходимо установить соединение с брокером");
+    }
+}
+
+void MainWindow::slot_set_temp_inside(
+    const std::string &message)
+{
+    const QString q_mes = QString::fromStdString(message);
+    bool is_ok = false;
+    const double d_val = q_mes.toDouble(&is_ok);
+    if (!is_ok)
+    {
+        return;
+    }
+    const int i_val = static_cast<int>(d_val);
+    this->ui->progress_temp_inside->setValue(i_val);
+}
+
+void MainWindow::slot_set_temp_outside(
+    const std::string &message)
+{
+    const QString q_mes = QString::fromStdString(message);
+    bool is_ok = false;
+    const double d_val = q_mes.toDouble(&is_ok);
+    if (!is_ok)
+    {
+        return;
+    }
+    const int i_val = static_cast<int>(d_val);
+    this->ui->progress_temp_outside->setValue(i_val);
+}
+
+void MainWindow::slot_set_time(
+    const std::string &message)
+{
+    const QString q_mes = QString::fromStdString(message);
+    QTime q_time;
+    
+    try
+    {
+        q_time = QTime::fromString(q_mes, "hh:mm:ss");
+    }
+    catch (...)
+    {
+        this->ui->text_browser->append("Ошибка распознавания времени");
+        return;
+    }
+    
+    this->ui->time_set->setTime(q_time);
+}
+
+void MainWindow::slot_set_current_lesson(
+    const std::string &message)
+{
+    const QString q_mes = QString::fromStdString(message);
+    this->ui->label_current_lesson->setText(q_mes);
+}
+
+void MainWindow::on_btn_connect_broker_clicked()
+{
+    if (this->callback_context.connected)
+    {
+        this->ui->text_browser->append(
+            "Соединение с брокером уже установлено");
+        return;
+    }
+    
+    // Асинхронное подключение к брокеру
+    std::cout << std::format(
+        "Connecting to the broker {}...\n",
+        this->server_uri);
+    std::cout.flush();
+    
+    try
+    {
+        const int rc = MQTTAsync_connect(
+            this->client, &(this->conn_opts));
+        
+        if (rc != MQTTASYNC_SUCCESS)
+        {
+            QMessageBox::warning(
+                this,
+                "Ошибка",
+                "Не удалось подключиться к брокеру. "
+                "Пожалуйста, попробуйте ещё раз позже");
+        }
+    }
+    catch (...)
+    {
+        QMessageBox::warning(
+            this,
+            "Ошибка",
+            "Не удалось подключиться к брокеру. "
+            "Пожалуйста, попробуйте ещё раз позже");
+    }
+    
 }
