@@ -7,9 +7,6 @@
 
 #include <QMainWindow>
 
-// #include "mqtt/async_client.h"
-// #include "mqtt/topic.h"
-
 extern "C"
 {
 #include <MQTTAsync.h>
@@ -19,16 +16,11 @@ extern "C"
 #include "mqtt_callback.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui
+{
+    class MainWindow;
+}
 QT_END_NAMESPACE
-
-// struct MQTTAsync_Destroy
-// {
-//     void operator () (MQTTAsync *client)
-//     {
-//         MQTTAsync_destroy(client);
-//     }
-// };
 
 class MainWindow : public QMainWindow
 {
@@ -46,7 +38,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     
-    // Строки
     std::string tag;
     std::string server_uri;
     std::string client_id;
@@ -57,6 +48,7 @@ private:
     
     InSomnia::MQTT_Callback_Context callback_context;
     
+    // Methods
     
     void slot_set_temp_inside(const std::string &message);
     

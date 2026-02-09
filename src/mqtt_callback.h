@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <functional>
+#include <memory>
 
 extern "C"
 {
@@ -83,65 +84,50 @@ namespace InSomnia
         
         bool is_connected;
         
-        std::vector<Topic> topics;
+        std::shared_ptr<std::vector<Topic>> topics;
         
         std::function<void (const std::string)> callback_text_browser;
         
         // For subscribe
         Topic *topic;
         
-        // Functions
+        // Methods
         
         // Callback при успешном подключении
-        // Context -> MQTT_Callback_Context
         void internal_on_connect(
             MQTTAsync_successData *response);
         
         // Callback при неудачном подключении
-        // Context -> MQTT_Callback_Context
         void internal_on_connect_failure(
             MQTTAsync_failureData *response);
         
         // Callback при успешной подписке
-        // Context -> MQTT_Subscribe_Context
         void internal_on_subscribe(
             MQTTAsync_successData *response);
         
         // Callback при неудачной подписке
-        // Context -> MQTT_Subscribe_Context
         void internal_on_subscribe_failure(
             MQTTAsync_failureData *response);
         
         // Callback при получении сообщения
-        // Context -> free
         int internal_on_message(
             char *topic_name,
             int topic_len, 
             MQTTAsync_message *message);
         
         // Callback при потере соединения
-        // Context -> MQTT_Callback_Context
         void internal_on_connection_lost(
             char *cause);
         
         // Callback при отправке сообщения
-        // Context -> free
         void internal_on_delivery_complete(
             MQTTAsync_token token);
         
         // Callback при отключении
-        // Context -> MQTT_Callback_Context
         void internal_on_disconnect(
             MQTTAsync_successData *response);
         
     };
-    
-    // struct MQTT_Subscribe_Context
-    // {
-    //     Topic *topic = nullptr;
-        
-    //     MQTT_Callback_Context *callback_context = nullptr;
-    // };
     
     // Callback при успешном подключении
     void on_connect(

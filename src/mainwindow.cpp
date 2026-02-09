@@ -53,14 +53,14 @@ MainWindow::MainWindow(QWidget *parent)
     }
     
     // Наполняем callback_context
-    
     this->callback_context =
         InSomnia::MQTT_Callback_Context(
             this->client,
             std::move(input_topics),
             [this](const std::string text) -> void
             {
-                const QString qtext = QString::fromStdString(text);
+                const QString qtext =
+                    QString::fromStdString(text + "\n");
                 this->ui->text_browser->append(qtext);
             });
     
@@ -98,7 +98,6 @@ MainWindow::~MainWindow()
             MQTTAsync_disconnectOptions_initializer;
         
         disc_opts.onSuccess = InSomnia::on_disconnect;
-        // disc_opts.context = this->client;
         disc_opts.context = &(this->callback_context);
         
         const int rc =
@@ -130,14 +129,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_btn_connect_topics_clicked()
 {
-    // std::vector<InSomnia::Topic> input_topics =
-    // {
-    //     { std::format("ntiurfu/{}/temp/inside",    this->tag), 1 },
-    //     { std::format("ntiurfu/{}/temp/outside",   this->tag), 1 },
-    //     { std::format("ntiurfu/{}/time",           this->tag), 1 },
-    //     { std::format("ntiurfu/{}/current_lesson", this->tag), 1 }
-    // };
-    
     if (this->callback_context.get_is_connected())
     {
         InSomnia::Subscribe::pack_subscribe(
@@ -148,8 +139,44 @@ void MainWindow::on_btn_connect_topics_clicked()
     {
         this->ui->text_browser->append(
             "Прежде чем подписываться на топики, "
-            "необходимо установить соединение с брокером");
+            "необходимо установить соединение с брокером\n");
     }
+}
+
+void MainWindow::on_btn_connect_broker_clicked()
+{
+    if (this->callback_context.get_is_connected())
+    {
+        this->ui->text_browser->append(
+            "Соединение с брокером уже установлено\n");
+        return;
+    }
+    
+    // Асинхронное подключение к брокеру
+    std::cout << std::format(
+        "Connecting to the broker {}...\n",
+        this->server_uri);
+    std::cout.flush();
+    
+    try
+    {
+        const int rc = MQTTAsync_connect(
+            this->client, &(this->conn_opts));
+        
+        if (rc != MQTTASYNC_SUCCESS)
+        {
+            this->ui->text_browser->append(
+                "Не удалось подключиться к брокеру. "
+                "Пожалуйста, попробуйте ещё раз позже\n");
+        }
+    }
+    catch (...)
+    {
+        this->ui->text_browser->append(
+            "Не удалось подключиться к брокеру. "
+            "Пожалуйста, попробуйте ещё раз позже\n");
+    }
+    
 }
 
 void MainWindow::slot_set_temp_inside(
@@ -160,6 +187,8 @@ void MainWindow::slot_set_temp_inside(
     const double d_val = q_mes.toDouble(&is_ok);
     if (!is_ok)
     {
+        this->ui->text_browser->append(
+            "Ошибка сигнала температуры внутри помещения\n");
         return;
     }
     const int i_val = static_cast<int>(d_val);
@@ -174,6 +203,8 @@ void MainWindow::slot_set_temp_outside(
     const double d_val = q_mes.toDouble(&is_ok);
     if (!is_ok)
     {
+        this->ui->text_browser->append(
+            "Ошибка сигнала температуры на улице\n");
         return;
     }
     const int i_val = static_cast<int>(d_val);
@@ -192,7 +223,15 @@ void MainWindow::slot_set_time(
     }
     catch (...)
     {
-        this->ui->text_browser->append("Ошибка распознавания времени");
+        this->ui->text_browser->append(
+            "Ошибка распознавания времени\n");
+        return;
+    }
+    
+    if (!q_time.isValid())
+    {
+        this->ui->text_browser->append(
+            "Ошибка распознавания времени\n");
         return;
     }
     
@@ -204,44 +243,4 @@ void MainWindow::slot_set_current_lesson(
 {
     const QString q_mes = QString::fromStdString(message);
     this->ui->label_current_lesson->setText(q_mes);
-}
-
-void MainWindow::on_btn_connect_broker_clicked()
-{
-    if (this->callback_context.get_is_connected())
-    {
-        this->ui->text_browser->append(
-            "Соединение с брокером уже установлено");
-        return;
-    }
-    
-    // Асинхронное подключение к брокеру
-    std::cout << std::format(
-        "Connecting to the broker {}...\n",
-        this->server_uri);
-    std::cout.flush();
-    
-    try
-    {
-        const int rc = MQTTAsync_connect(
-            this->client, &(this->conn_opts));
-        
-        if (rc != MQTTASYNC_SUCCESS)
-        {
-            QMessageBox::warning(
-                this,
-                "Ошибка",
-                "Не удалось подключиться к брокеру. "
-                "Пожалуйста, попробуйте ещё раз позже");
-        }
-    }
-    catch (...)
-    {
-        QMessageBox::warning(
-            this,
-            "Ошибка",
-            "Не удалось подключиться к брокеру. "
-            "Пожалуйста, попробуйте ещё раз позже");
-    }
-    
 }

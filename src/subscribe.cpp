@@ -30,17 +30,6 @@ namespace InSomnia
             throw std::runtime_error("Client is null pointer");
         }
         
-        // MQTT_Subscribe_Context *subscribe_context =
-        //     new MQTT_Subscribe_Context();
-        
-        // subscribe_context->topic = &topic;
-        // subscribe_context->callback_context = &callback_context;
-        
-        // std::pair<MQTT_Callback_Context*, Topic*>
-        //     *pair_callback_context_and_topic =
-        //         new std::pair<MQTT_Callback_Context*, Topic*>(
-        //             &callback_context, &topic);
-        
         if (topic.get_is_subscribe())
         {
             callback_context.outside_callback_text_browser(

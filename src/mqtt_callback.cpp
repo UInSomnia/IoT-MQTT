@@ -27,11 +27,19 @@ namespace InSomnia
         
         this->client = client;
         this->is_connected = false;
-        this->topics = std::move(topics);
+        this->topics =
+            std::make_shared<std::vector<Topic>>();
+        *(this->topics) = std::move(topics);
         this->callback_text_browser =
             std::move(callback_text_browser);
         
         this->topic = nullptr;
+        
+        if (this->client == nullptr)
+        {
+            throw std::runtime_error(
+                "Client is null pointer");
+        }
     }
     
     MQTT_Callback_Context *MQTT_Callback_Context::
@@ -77,26 +85,18 @@ namespace InSomnia
     
     const std::vector<Topic>& MQTT_Callback_Context::get_topics() const
     {
-        return this->topics;
+        return *(this->topics);
     }
     
     std::vector<Topic> &MQTT_Callback_Context::access_topics()
     {
-        return this->topics;
+        return *(this->topics);
     }
     
     // Callback при успешном подключении
     void MQTT_Callback_Context::internal_on_connect(
         MQTTAsync_successData *response)
-    {        
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Callback_Context *callback_context =
-        //     reinterpret_cast<MQTT_Callback_Context*>(context);
-        
+    {
         this->is_connected = true;
         
         std::cout << "Successful connection to the broker\n";
@@ -104,54 +104,23 @@ namespace InSomnia
         
         this->callback_text_browser(
             "Подключение к брокеру завершено успешно");
-        
-        // MQTTAsync client = callback_context->client;
-        // pack_subscribe(client, callback_context->topics);
     }
     
     // Callback при неудачном подключении
     void MQTT_Callback_Context::internal_on_connect_failure(
         MQTTAsync_failureData *response)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Callback_Context *callback_context =
-        //     reinterpret_cast<MQTT_Callback_Context*>(context);
-        
         this->is_connected = false;
         
         this->callback_text_browser(
             "Не удалось установить соединение с брокером. "
             "Попробуйте повторить позже");
-        
-        // throw std::runtime_error(
-        //     std::format(
-        //         "Couldn't connect to the broker, code: {}",
-        //         response ? response->code : 0));
     }
     
     // Callback при успешной подписке
     void MQTT_Callback_Context::internal_on_subscribe(
         MQTTAsync_successData *response)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Subscribe_Context *subscribe_context =
-        //     reinterpret_cast<MQTT_Subscribe_Context*>(context);
-        
-        // Topic *topic =
-        //     subscribe_context->topic;
-        // MQTT_Callback_Context *callback_context =
-        //     subscribe_context->callback_context;
-        
-        // delete subscribe_context;
-        
         if (this->topic == nullptr)
         {
             throw std::runtime_error("Topic is null pointer");
@@ -175,21 +144,6 @@ namespace InSomnia
     void MQTT_Callback_Context::internal_on_subscribe_failure(
         MQTTAsync_failureData *response)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Subscribe_Context *subscribe_context =
-        //     reinterpret_cast<MQTT_Subscribe_Context*>(context);
-        
-        // Topic *topic =
-        //     subscribe_context->topic;
-        // MQTT_Callback_Context *callback_context =
-        //     subscribe_context->callback_context;
-        
-        // delete subscribe_context;
-        
         if (this->topic == nullptr)
         {
             throw std::runtime_error("Topic is null pointer");
@@ -200,14 +154,7 @@ namespace InSomnia
         this->callback_text_browser(
             std::format(
                 "Не удалось подписаться на топик ({})",
-                topic->get_path()));
-        
-        // throw std::runtime_error(
-        //     std::format(
-        //         "Couldn't subscribed to the topic: {}, code: {}",
-        //         topic->get_path(),
-        //         response ? response->code : 0));
-        
+                topic->get_path()));        
     }
     
     // Callback при получении сообщения
@@ -216,10 +163,6 @@ namespace InSomnia
         int topic_len, 
         MQTTAsync_message *message)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
         if (topic_name == nullptr)
         {
             throw std::runtime_error("Topic_name is null pointer");
@@ -228,9 +171,6 @@ namespace InSomnia
         {
             throw std::runtime_error("Message is null pointer");
         }
-        
-        // MQTT_Callback_Context *callback_context =
-        //     reinterpret_cast<MQTT_Callback_Context*>(context);
         
         std::string payload(
             static_cast<const char*>(message->payload),
@@ -241,12 +181,9 @@ namespace InSomnia
             topic_name,
             topic_len);
         
-        // callback_context->callback_message_topic(
-        //     str_topic_name, payload);
-        
         InSomnia::Topic *selected_topic = nullptr;
         
-        for (InSomnia::Topic &t : this->topics)
+        for (InSomnia::Topic &t : *(this->topics))
         {
             const std::string &current_path = t.get_path();
             if (str_topic_name == current_path)
@@ -257,16 +194,15 @@ namespace InSomnia
         
         if (selected_topic == nullptr)
         {
-            // throw std::runtime_error(
-            //     "Selected_topic is null pointer");
-            
             this->callback_text_browser(
                 std::format(
-                    "Не удалось найти топик ({}), который прислал сообщение",
+                    "Не удалось найти топик ({}), "
+                    "который прислал сообщение",
                     str_topic_name));
         }
         
-        selected_topic->call_callback_set_value_to_ui(payload);
+        selected_topic
+            ->call_callback_set_value_to_ui(payload);
         
         std::cout << std::format(
             "A message was received asynchronously:\n"
@@ -286,14 +222,6 @@ namespace InSomnia
     void MQTT_Callback_Context::internal_on_connection_lost(
         char *cause)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Callback_Context *callback_context =
-        //     reinterpret_cast<MQTT_Callback_Context*>(context);
-        
         this->is_connected = false;
         
         std::string str_cause;
@@ -321,11 +249,6 @@ namespace InSomnia
     void MQTT_Callback_Context::internal_on_delivery_complete(
         MQTTAsync_token token)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
         std::cout << std::format(
             "Message with token {} "
             "delivery completed\n", token);
@@ -336,14 +259,6 @@ namespace InSomnia
     void MQTT_Callback_Context::internal_on_disconnect(
         MQTTAsync_successData *response)
     {
-        // if (context == nullptr)
-        // {
-        //     throw std::runtime_error("Context is null pointer");
-        // }
-        
-        // MQTT_Callback_Context *callback_context =
-        //     reinterpret_cast<MQTT_Callback_Context*>(context);
-        
         this->is_connected = false;
         
         this->callback_text_browser(
@@ -352,8 +267,6 @@ namespace InSomnia
         std::cout <<
             "Disconnected is successfull\n";
         std::cout.flush();
-        
-        // printf("Успешно отключились от брокера\n");
     }
     
     void on_connect(
