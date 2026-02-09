@@ -10,7 +10,10 @@
 // #include "mqtt/async_client.h"
 // #include "mqtt/topic.h"
 
+extern "C"
+{
 #include <MQTTAsync.h>
+}
 
 #include "topic.h"
 #include "mqtt_callback.h"

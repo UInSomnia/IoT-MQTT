@@ -7,6 +7,8 @@
 #include <iostream>
 #include <format>
 
+#include "subscribe.h"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -21,10 +23,17 @@ MainWindow::MainWindow(QWidget *parent)
     
     std::vector<InSomnia::Topic> input_topics =
     {
-        { std::format("ntiurfu/{}/temp/inside",    this->tag), 1, [this](const std::string &message){ this->slot_set_temp_inside(message); } },
-        { std::format("ntiurfu/{}/temp/outside",   this->tag), 1, [this](const std::string &message){ this->slot_set_temp_outside(message); } },
-        { std::format("ntiurfu/{}/time",           this->tag), 1, [this](const std::string &message){ this->slot_set_time(message); } },
-        { std::format("ntiurfu/{}/current_lesson", this->tag), 1, [this](const std::string &message){ this->slot_set_current_lesson(message); } }
+        { std::format("ntiurfu/{}/temp/inside",    this->tag), 1,
+          [this](const std::string &message){ this->slot_set_temp_inside(message); } },
+        
+        { std::format("ntiurfu/{}/temp/outside",   this->tag), 1,
+          [this](const std::string &message){ this->slot_set_temp_outside(message); } },
+        
+        { std::format("ntiurfu/{}/time",           this->tag), 1,
+          [this](const std::string &message){ this->slot_set_time(message); } },
+        
+        { std::format("ntiurfu/{}/current_lesson", this->tag), 1,
+          [this](const std::string &message){ this->slot_set_current_lesson(message); } }
     };
     
     int rc = -1;
@@ -44,41 +53,16 @@ MainWindow::MainWindow(QWidget *parent)
     }
     
     // Наполняем callback_context
-    this->callback_context.client = this->client;
-    this->callback_context.connected = false;
-    this->callback_context.topics = std::move(input_topics);
-    this->callback_context.callback_text_browser =
-    [this](const std::string text) -> void
-    {
-        const QString qtext = QString::fromStdString(text);
-        this->ui->text_browser->append(qtext);
-    };
     
-    this->callback_context.callback_message_topic =
-    [this](const std::string topic, const std::string message) -> void
-    {
-        // std::cout << "Test !\n";
-        // std::cout.flush();
-        
-        InSomnia::Topic *selected_topic = nullptr;
-        
-        for (InSomnia::Topic &t :
-            this->callback_context.topics)
-        {
-            const std::string &current_path = t.get_path();
-            if (topic == current_path)
+    this->callback_context =
+        InSomnia::MQTT_Callback_Context(
+            this->client,
+            std::move(input_topics),
+            [this](const std::string text) -> void
             {
-                selected_topic = &t;
-            }
-        }
-        
-        if (selected_topic == nullptr)
-        {
-            throw std::runtime_error("Selected_topic is null pointer");
-        }
-        
-        selected_topic->call_callback_set_value_to_ui(message);
-    };
+                const QString qtext = QString::fromStdString(text);
+                this->ui->text_browser->append(qtext);
+            });
     
     // Установка callback-функций
     rc = MQTTAsync_setCallbacks(
@@ -108,7 +92,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     // Отключение от брокера
-    if (this->callback_context.connected)
+    if (this->callback_context.get_is_connected())
     {
         MQTTAsync_disconnectOptions disc_opts =
             MQTTAsync_disconnectOptions_initializer;
@@ -132,7 +116,7 @@ MainWindow::~MainWindow()
         std::cout.flush();
         
         // Даем время на завершение отключения
-        sleep(1);
+        // sleep(1);
     }
     
     // Очистка ресурсов
@@ -154,9 +138,9 @@ void MainWindow::on_btn_connect_topics_clicked()
     //     { std::format("ntiurfu/{}/current_lesson", this->tag), 1 }
     // };
     
-    if (this->callback_context.connected)
+    if (this->callback_context.get_is_connected())
     {
-        InSomnia::pack_subscribe(
+        InSomnia::Subscribe::pack_subscribe(
             this->client,
             this->callback_context);
     }
@@ -224,7 +208,7 @@ void MainWindow::slot_set_current_lesson(
 
 void MainWindow::on_btn_connect_broker_clicked()
 {
-    if (this->callback_context.connected)
+    if (this->callback_context.get_is_connected())
     {
         this->ui->text_browser->append(
             "Соединение с брокером уже установлено");

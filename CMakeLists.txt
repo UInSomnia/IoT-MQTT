@@ -25,6 +25,7 @@ set(SOURCES
     src/mainwindow.cpp
     src/mqtt_callback.cpp
     src/topic.cpp
+    src/subscribe.cpp
 )
 
 # Добавление заголовочных файлов
@@ -32,6 +33,7 @@ set(HEADERS
     src/mainwindow.h
     src/mqtt_callback.h
     src/topic.h
+    src/subscribe.h
 )
 
 # Добавление UI-форм
