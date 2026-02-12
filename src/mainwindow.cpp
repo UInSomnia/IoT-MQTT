@@ -15,11 +15,70 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     
+    const std::string start_text = "нет данных";
+    
+    {
+        QProgressBar *qpb_temp_inside =
+            this->ui->progress_temp_inside;
+        
+        const int start_value =
+            qpb_temp_inside->minimum();
+        
+        qpb_temp_inside->setValue(start_value);
+        qpb_temp_inside->setFormat(start_text.c_str());
+    }
+    
+    {
+        QProgressBar *qpb_temp_outside =
+            this->ui->progress_temp_outside;
+        
+        const int start_value = 
+            qpb_temp_outside->minimum();
+        
+        qpb_temp_outside->setValue(start_value);
+        qpb_temp_outside->setFormat(start_text.c_str());
+    }
+    
+    this->color_cold = "#1E90FF";
+    
+    this->color_warm = "#00D700";
+    
     this->tag = "insomnia_soni1541";
     
     this->server_uri = "test.mosquitto.org";
     
     this->client_id = this->tag;
+    
+    this->style_progress_cold =
+        std::format(
+            "QProgressBar {{"
+            "    border: 1px solid #202020;"
+            "    border-radius: 8px;"
+            "    text-align: center;"
+            "}} "
+            "QProgressBar::chunk {{"
+            "    background-color: {};"
+            "    border-radius: 8px;"
+            "}}", this->color_cold);
+    
+    this->style_progress_warm =
+        std::format(
+            "QProgressBar {{"
+            "    border: 1px solid #202020;"
+            "    border-radius: 8px;"
+            "    text-align: center;"
+            "}} "
+            "QProgressBar::chunk {{"
+            "    background-color: {};"
+            "    border-radius: 8px;"
+            "}}", this->color_warm);
+    
+    // std::cout << std::format(
+    //     "Style cold: {}\n\n"
+    //     "Style warm: {}\n\n",
+    //     this->style_progress_cold,
+    //     this->style_progress_warm);
+    // std::cout.flush();
     
     std::vector<InSomnia::Topic> input_topics =
     {
@@ -193,6 +252,22 @@ void MainWindow::slot_set_temp_inside(
     }
     const int i_val = static_cast<int>(d_val);
     this->ui->progress_temp_inside->setValue(i_val);
+    
+    const QString text =
+        QString::fromStdString(
+            std::format("{} °C", d_val));
+    this->ui->progress_temp_inside->setFormat(text);
+    
+    const QString style_progress =
+        (i_val < 0 ?
+        this->style_progress_cold :
+        this->style_progress_warm)
+        .c_str();
+    
+    this
+        ->ui
+        ->progress_temp_inside
+        ->setStyleSheet(style_progress);
 }
 
 void MainWindow::slot_set_temp_outside(
@@ -209,6 +284,22 @@ void MainWindow::slot_set_temp_outside(
     }
     const int i_val = static_cast<int>(d_val);
     this->ui->progress_temp_outside->setValue(i_val);
+    
+    const QString text =
+        QString::fromStdString(
+            std::format("{} °C", d_val));
+    this->ui->progress_temp_outside->setFormat(text);
+    
+    const QString style_progress =
+        (i_val < 0 ?
+        this->style_progress_cold :
+        this->style_progress_warm)
+        .c_str();
+    
+    this
+        ->ui
+        ->progress_temp_outside
+        ->setStyleSheet(style_progress);
 }
 
 void MainWindow::slot_set_time(

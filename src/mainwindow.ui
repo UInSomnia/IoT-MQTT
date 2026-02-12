@@ -166,7 +166,7 @@
       </property>
       <property name="maximumDateTime">
        <datetime>
-        <hour>17</hour>
+        <hour>12</hour>
         <minute>59</minute>
         <second>56</second>
         <year>2000</year>
@@ -177,8 +177,8 @@
       <property name="displayFormat">
        <string>hh:mm:ss</string>
       </property>
-      <property name="timeSpec">
-       <enum>Qt::TimeSpec::UTC</enum>
+      <property name="timeZone">
+       <enum>QTimeZone::UTC</enum>
       </property>
      </widget>
     </item>

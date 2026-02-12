@@ -38,6 +38,12 @@ private slots:
 private:
     Ui::MainWindow *ui;
     
+    std::string color_cold;
+    std::string color_warm;
+    
+    std::string style_progress_cold;
+    std::string style_progress_warm;
+    
     std::string tag;
     std::string server_uri;
     std::string client_id;
