@@ -63,6 +63,8 @@ private:
     void slot_set_time(const std::string &message);
     
     void slot_set_current_lesson(const std::string &message);
+    
+    void set_last_active();
 };
 
 #endif // MAINWINDOW_H

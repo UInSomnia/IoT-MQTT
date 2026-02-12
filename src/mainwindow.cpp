@@ -3,6 +3,7 @@
 
 #include <QTime>
 #include <QMessageBox>
+#include <QDateTime>
 
 #include <iostream>
 #include <format>
@@ -80,18 +81,26 @@ MainWindow::MainWindow(QWidget *parent)
     //     this->style_progress_warm);
     // std::cout.flush();
     
+    this->ui->label_filler_time->setText(start_text.c_str());
+    this->ui->label_filler_time->show();
+    this->ui->time_set->hide();
+    this->ui->time_set->setEnabled(false);
+    
+    this->ui->label_current_lesson->setText(start_text.c_str());
+    this->ui->label_last_active->setText(start_text.c_str());
+    
     std::vector<InSomnia::Topic> input_topics =
     {
         { std::format("ntiurfu/{}/temp/inside",    this->tag), 1,
           [this](const std::string &message){ this->slot_set_temp_inside(message); } },
         
-        { std::format("ntiurfu/{}/temp/outside",   this->tag), 1,
+        { std::format("ntiurfu/{}/temp/outside",   this->tag), 0,
           [this](const std::string &message){ this->slot_set_temp_outside(message); } },
         
-        { std::format("ntiurfu/{}/time",           this->tag), 1,
+        { std::format("ntiurfu/{}/time",           this->tag), 0,
           [this](const std::string &message){ this->slot_set_time(message); } },
         
-        { std::format("ntiurfu/{}/current_lesson", this->tag), 1,
+        { std::format("ntiurfu/{}/current_lesson", this->tag), 2,
           [this](const std::string &message){ this->slot_set_current_lesson(message); } }
     };
     
@@ -120,7 +129,16 @@ MainWindow::MainWindow(QWidget *parent)
             {
                 const QString qtext =
                     QString::fromStdString(text + "\n");
-                this->ui->text_browser->append(qtext);
+                
+                // this->ui->text_browser->append(qtext);
+                
+                QMetaObject::invokeMethod(
+                this,
+                [this, qtext]()
+                {
+                    this->ui->text_browser->append(qtext);
+                },
+                Qt::QueuedConnection);
             });
     
     // Установка callback-функций
@@ -251,12 +269,12 @@ void MainWindow::slot_set_temp_inside(
         return;
     }
     const int i_val = static_cast<int>(d_val);
-    this->ui->progress_temp_inside->setValue(i_val);
+    // this->ui->progress_temp_inside->setValue(i_val);
     
     const QString text =
         QString::fromStdString(
             std::format("{} °C", d_val));
-    this->ui->progress_temp_inside->setFormat(text);
+    // this->ui->progress_temp_inside->setFormat(text);
     
     const QString style_progress =
         (i_val < 0 ?
@@ -264,10 +282,24 @@ void MainWindow::slot_set_temp_inside(
         this->style_progress_warm)
         .c_str();
     
-    this
-        ->ui
-        ->progress_temp_inside
-        ->setStyleSheet(style_progress);
+    // this
+    //     ->ui
+    //     ->progress_temp_inside
+    //     ->setStyleSheet(style_progress);
+    
+    QMetaObject::invokeMethod(
+    this,
+    [this, i_val, text, style_progress]()
+    {
+        this->ui->progress_temp_inside->setValue(i_val);
+        this->ui->progress_temp_inside->setFormat(text);
+        this
+            ->ui
+            ->progress_temp_inside
+            ->setStyleSheet(style_progress);
+        this->set_last_active();
+    },
+    Qt::QueuedConnection);
 }
 
 void MainWindow::slot_set_temp_outside(
@@ -283,12 +315,12 @@ void MainWindow::slot_set_temp_outside(
         return;
     }
     const int i_val = static_cast<int>(d_val);
-    this->ui->progress_temp_outside->setValue(i_val);
+    // this->ui->progress_temp_outside->setValue(i_val);
     
     const QString text =
         QString::fromStdString(
             std::format("{} °C", d_val));
-    this->ui->progress_temp_outside->setFormat(text);
+    // this->ui->progress_temp_outside->setFormat(text);
     
     const QString style_progress =
         (i_val < 0 ?
@@ -296,10 +328,24 @@ void MainWindow::slot_set_temp_outside(
         this->style_progress_warm)
         .c_str();
     
-    this
-        ->ui
-        ->progress_temp_outside
-        ->setStyleSheet(style_progress);
+    // this
+    //     ->ui
+    //     ->progress_temp_outside
+    //     ->setStyleSheet(style_progress);
+    
+    QMetaObject::invokeMethod(
+    this,
+    [this, i_val, text, style_progress]()
+    {
+        this->ui->progress_temp_outside->setValue(i_val);
+        this->ui->progress_temp_outside->setFormat(text);
+        this
+            ->ui
+            ->progress_temp_outside
+            ->setStyleSheet(style_progress);
+        this->set_last_active();
+    },
+    Qt::QueuedConnection);
 }
 
 void MainWindow::slot_set_time(
@@ -326,12 +372,47 @@ void MainWindow::slot_set_time(
         return;
     }
     
-    this->ui->time_set->setTime(q_time);
+    // this->ui->time_set->setTime(q_time);
+    
+    // this->ui->label_filler_time->hide();
+    // this->ui->time_set->show();
+    
+    QMetaObject::invokeMethod(
+    this,
+    [this, q_time]()
+    {
+        this->ui->time_set->setTime(q_time);
+        this->ui->label_filler_time->hide();
+        this->ui->time_set->show();
+        this->set_last_active();
+    },
+    Qt::QueuedConnection);
 }
 
 void MainWindow::slot_set_current_lesson(
     const std::string &message)
 {
     const QString q_mes = QString::fromStdString(message);
-    this->ui->label_current_lesson->setText(q_mes);
+    
+    // this->ui->label_current_lesson->setText(q_mes);
+    
+    QMetaObject::invokeMethod(
+    this,
+    [this, q_mes]()
+    {
+        this->ui->label_current_lesson->setText(q_mes);
+        this->set_last_active();
+    },
+    Qt::QueuedConnection);
+}
+
+void MainWindow::set_last_active()
+{
+    const QDateTime current =
+        QDateTime::currentDateTime();
+    
+    const QString text =
+        current.toString("dd.MM.yyyy hh:mm:ss");
+    
+    this->ui->label_last_active->setText(text);
 }

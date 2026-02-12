@@ -61,6 +61,31 @@
      </spacer>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <item>
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Время последней активности:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_last_active">
+        <property name="text">
+         <string>Last active</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="Line" name="line_3">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
        <widget class="QLabel" name="label_4">
@@ -95,6 +120,16 @@
        </widget>
       </item>
       <item>
+       <widget class="Line" name="line_5">
+        <property name="lineWidth">
+         <number>10</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label_2">
         <property name="text">
          <string>Температура (снаружи):</string>
@@ -125,6 +160,16 @@
        </widget>
       </item>
       <item>
+       <widget class="Line" name="line_4">
+        <property name="lineWidth">
+         <number>10</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QProgressBar" name="progress_temp_outside">
         <property name="minimum">
          <number>-50</number>
@@ -150,37 +195,45 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_3">
-      <property name="text">
-       <string>Время:</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QTimeEdit" name="time_set">
-      <property name="locale">
-       <locale language="Russian" country="Russia"/>
-      </property>
-      <property name="inputMethodHints">
-       <set>Qt::InputMethodHint::ImhPreferNumbers</set>
-      </property>
-      <property name="maximumDateTime">
-       <datetime>
-        <hour>12</hour>
-        <minute>59</minute>
-        <second>56</second>
-        <year>2000</year>
-        <month>1</month>
-        <day>1</day>
-       </datetime>
-      </property>
-      <property name="displayFormat">
-       <string>hh:mm:ss</string>
-      </property>
-      <property name="timeZone">
-       <enum>QTimeZone::UTC</enum>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Время:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTimeEdit" name="time_set">
+        <property name="locale">
+         <locale language="Russian" country="Russia"/>
+        </property>
+        <property name="inputMethodHints">
+         <set>Qt::InputMethodHint::ImhPreferNumbers</set>
+        </property>
+        <property name="maximumDateTime">
+         <datetime>
+          <hour>-1</hour>
+          <minute>-1</minute>
+          <second>-1</second>
+          <year>0</year>
+          <month>0</month>
+          <day>0</day>
+         </datetime>
+        </property>
+        <property name="displayFormat">
+         <string>hh:mm:ss</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_filler_time">
+        <property name="text">
+         <string>no_set</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <spacer name="verticalSpacer">
