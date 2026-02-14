@@ -269,6 +269,28 @@ namespace InSomnia
         std::cout.flush();
     }
     
+    void MQTT_Callback_Context::internal_on_publish_success(
+        MQTTAsync_successData *response)
+    {
+        this->callback_text_browser(
+            "Значение параметра успешно установлено");  
+        
+        std::cout <<
+            "Setting parametr is successfull\n";
+        std::cout.flush();
+    }
+    
+    void MQTT_Callback_Context::internal_on_publish_failure(
+        MQTTAsync_failureData *response)
+    {
+        this->callback_text_browser(
+            "Установка параметра не удалась"); 
+        
+        std::cout <<
+            "Setting parametr is failure!\n";
+        std::cout.flush();
+    }
+    
     void on_connect(
         void *context, MQTTAsync_successData *response)
     {        
@@ -350,5 +372,25 @@ namespace InSomnia
         
         callback_context->internal_on_disconnect(response);
     }
+    
+    void on_publish_success(
+        void *context, MQTTAsync_successData *response)
+    {
+        MQTT_Callback_Context *callback_context =
+            MQTT_Callback_Context::from_context(context);
+        
+        callback_context->internal_on_publish_success(response);
+    }
+    
+    void on_publish_failure(
+        void *context, MQTTAsync_failureData *response)
+    {
+        MQTT_Callback_Context *callback_context =
+            MQTT_Callback_Context::from_context(context);
+        
+        callback_context->internal_on_publish_failure(response);
+    }
+    
+    
     
 }

@@ -61,6 +61,11 @@ namespace InSomnia
         friend void on_disconnect(
             void *context, MQTTAsync_successData *response);
         
+        friend void on_publish_success(
+            void* context, MQTTAsync_successData* response);
+        friend void on_publish_failure(
+            void* context, MQTTAsync_failureData* response);
+        
         void outside_callback_text_browser(
             const std::string &message);
         
@@ -127,6 +132,11 @@ namespace InSomnia
         void internal_on_disconnect(
             MQTTAsync_successData *response);
         
+        void internal_on_publish_success(
+            MQTTAsync_successData* response);
+        void internal_on_publish_failure(
+            MQTTAsync_failureData* response);
+        
     };
     
     // Callback при успешном подключении
@@ -163,6 +173,11 @@ namespace InSomnia
     // Callback при отключении
     void on_disconnect(
         void *context, MQTTAsync_successData *response);
+    
+    void on_publish_success(
+        void* context, MQTTAsync_successData* response);
+    void on_publish_failure(
+        void* context, MQTTAsync_failureData* response);
     
 }
 

@@ -164,6 +164,25 @@ MainWindow::MainWindow(QWidget *parent)
     this->conn_opts.onFailure = InSomnia::on_connect_failure;
     this->conn_opts.context = &(this->callback_context);
     
+    this->topic_lesson = nullptr;
+    this->topic_temp_inside = nullptr;
+    this->topic_temp_outside = nullptr;
+    this->topic_time = nullptr;
+    
+    this->extract_topics();
+    
+    this->ui->slider_temp_inside->setMaximum(50);
+    this->ui->slider_temp_inside->setMinimum(-50);
+    this->ui->slider_temp_inside->setValue(0);
+    
+    this->ui->slider_temp_outside->setMaximum(50);
+    this->ui->slider_temp_outside->setMinimum(-50);
+    this->ui->slider_temp_outside->setValue(0);
+    
+    this->ui->label_temp_inside->setText(
+        QString::number(this->ui->slider_temp_inside->value()));
+    this->ui->label_temp_outside->setText(
+        QString::number(this->ui->slider_temp_outside->value()));
 }
 
 MainWindow::~MainWindow()
@@ -415,4 +434,205 @@ void MainWindow::set_last_active()
         current.toString("dd.MM.yyyy hh:mm:ss");
     
     this->ui->label_last_active->setText(text);
+}
+
+void MainWindow::setting_parametr(
+    InSomnia::Topic *topic_set, const std::string &message)
+{
+    if (topic_set == nullptr)
+    {
+        throw std::runtime_error(
+            "Topic set is null pointer");
+    }
+    
+    MQTTAsync_message pubmsg = MQTTAsync_message_initializer;
+    MQTTAsync_responseOptions opts = 
+        MQTTAsync_responseOptions_initializer;
+    
+    // Настраиваем параметры отправки
+    opts.onSuccess = InSomnia::on_publish_success;
+    opts.onFailure = InSomnia::on_publish_failure;
+    // opts.context = pubContext; // Передаем контекст в callback
+    opts.context = &(this->callback_context);
+    
+    
+    if(topic_set->get_is_subscribe() == false)
+    {
+        this->ui->text_browser->append(
+            "Необходимо подписаться на топик\n");
+        return;
+    }
+    
+    // Настраиваем сообщение
+    pubmsg.payload = const_cast<char*>(message.c_str());
+    pubmsg.payloadlen = static_cast<int>(message.length());
+    pubmsg.qos = topic_set->get_QOS();
+    pubmsg.retained = 0;
+    
+    // Отправляем сообщение
+    const int rc = MQTTAsync_sendMessage(
+        this->client, 
+        topic_set->get_path().c_str(),
+        &pubmsg, 
+        &opts);
+    
+    if (rc != MQTTASYNC_SUCCESS) 
+    {
+        // delete pubContext; // Освобождаем память при ошибке
+        throw std::runtime_error(
+            std::format("Failed to initiate publish to '{}', error: {}", 
+                topic_set->get_path(), rc));
+    }
+}
+
+void MainWindow::extract_topics()
+{
+    const std::string path_lesson =
+        std::format("ntiurfu/{}/current_lesson", this->tag);
+    const std::string path_temp_inside =
+        std::format("ntiurfu/{}/temp/inside", this->tag);
+    const std::string path_temp_outside =
+        std::format("ntiurfu/{}/temp/outside", this->tag);
+    const std::string path_time =
+        std::format("ntiurfu/{}/time", this->tag);
+    
+    for(InSomnia::Topic &topic :
+        this->callback_context.access_topics())
+    {
+        if(topic.get_path() == path_lesson)
+        {
+            this->topic_lesson = &topic;
+        }
+        else if(topic.get_path() == path_temp_inside)
+        {
+            this->topic_temp_inside = &topic;
+        }
+        else if(topic.get_path() == path_temp_outside)
+        {
+            this->topic_temp_outside = &topic;
+        }
+        else if(topic.get_path() == path_time)
+        {
+            this->topic_time = &topic;
+        }
+    }
+    
+    if(this->topic_lesson == nullptr)
+    {
+        throw std::runtime_error("topic_lesson is nullptr");
+    }
+    if(this->topic_temp_inside == nullptr)
+    {
+        throw std::runtime_error("topic_temp_inside is nullptr");
+    }
+    if(this->topic_temp_outside == nullptr)
+    {
+        throw std::runtime_error("topic_temp_outside is nullptr");
+    }
+    if(this->topic_time == nullptr)
+    {
+        throw std::runtime_error("topic_time is nullptr");
+    }
+}
+
+void MainWindow::on_line_current_lesson_editingFinished()
+{
+    const QString current_line =
+        ui->line_current_lesson->text();
+    
+    std::cout << "Setting current_line = "
+        << current_line.toStdString() << "\n";
+    std::cout.flush();
+    
+    const std::string current_line_str = current_line.toStdString();
+    
+    this->setting_parametr(this->topic_lesson, current_line_str);
+    
+}
+
+
+void MainWindow::on_time_set_input_editingFinished()
+{
+    const QTime current_time =
+        this->ui->time_set_input->time();
+    
+    if(!current_time.isValid())
+    {
+        this->ui->text_browser->append("Время задано некорректно\n");
+        return;
+    }
+    
+    const std::string current_time_str = 
+        current_time.toString("hh:mm:ss").toStdString();
+    
+    std::cout << "Setting current_time = "
+        << current_time_str << "\n";
+    std::cout.flush();
+    
+    
+    this->setting_parametr(this->topic_time, current_time_str);
+}
+
+
+void MainWindow::on_slider_temp_inside_sliderReleased()
+{
+    const int current_temp_inside =
+        ui->slider_temp_inside->value();
+    
+    const QString current_temp_inside_qstr =
+        QString::number(current_temp_inside);
+    const std::string current_temp_inside_str = 
+        current_temp_inside_qstr.toStdString();
+    
+    // this->ui->label_temp_inside->setText(current_temp_inside_qstr);
+    
+    std::cout << "Setting temp_inside = "
+        << current_temp_inside_str << "\n";
+    std::cout.flush();
+    
+    this->setting_parametr(
+        this->topic_temp_inside, current_temp_inside_str);
+}
+
+
+void MainWindow::on_slider_temp_inside_valueChanged(int value)
+{
+    const int current_temp_inside =
+        ui->slider_temp_inside->value();
+    
+    const QString current_temp_inside_qstr =
+        QString::number(current_temp_inside);
+    
+    this->ui->label_temp_inside->setText(current_temp_inside_qstr);
+}
+
+void MainWindow::on_slider_temp_outside_sliderReleased()
+{
+    const int current_temp_outside =
+        ui->slider_temp_outside->value();
+    
+    const QString current_temp_outside_qstr =
+        QString::number(current_temp_outside);
+    const std::string current_temp_outside_str = 
+        current_temp_outside_qstr.toStdString();
+    
+    // this->ui->label_temp_inside->setText(current_temp_inside_qstr);
+    
+    std::cout << "Setting temp_outside = "
+        << current_temp_outside_str << "\n";
+    std::cout.flush();
+    
+    this->setting_parametr(
+        this->topic_temp_outside, current_temp_outside_str);
+}
+
+void MainWindow::on_slider_temp_outside_valueChanged(int value)
+{
+    const int current_temp_outside =
+        ui->slider_temp_outside->value();
+    
+    const QString current_temp_outside_qstr =
+        QString::number(current_temp_outside);
+    
+    this->ui->label_temp_outside->setText(current_temp_outside_qstr);
 }
