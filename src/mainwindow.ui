@@ -237,7 +237,7 @@
             </property>
             <property name="maximumDateTime">
              <datetime>
-              <hour>18</hour>
+              <hour>13</hour>
               <minute>59</minute>
               <second>59</second>
               <year>2000</year>
@@ -458,7 +458,7 @@
             </property>
             <property name="maximumDateTime">
              <datetime>
-              <hour>13</hour>
+              <hour>8</hour>
               <minute>59</minute>
               <second>59</second>
               <year>2000</year>
